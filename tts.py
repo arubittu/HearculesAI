@@ -11,11 +11,12 @@ import time
 
 # Define API keys and voice ID
 #OPENAI_API_KEY = '<OPENAI_API_KEY>'
-ELEVENLABS_API_KEY = 'KEY'
+ELEVENLABS_API_KEY = 'ed0b37bd0196e46583e6d87094b2794e'
 VOICE_ID = '21m00Tcm4TlvDq8ikWAM'
 
 # Set OpenAI API key
-openai.api_key = 'KEY'
+openai.api_key = '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'
+# os.environ["OPENAI_API_KEY"] = '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'
 
 
 

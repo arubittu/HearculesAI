@@ -13,9 +13,10 @@ from queue import Queue
 from tempfile import NamedTemporaryFile
 from time import sleep
 from sys import platform
+# from orchestrate import speaker_event
 
 
-def transcribe():
+def transcribe(speaker_event):
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", default="small", help="Model to use",
                         choices=["tiny", "base", "small", "medium", "large"])
@@ -99,8 +100,9 @@ def transcribe():
     while True:
         try:
             now = datetime.utcnow()
-            # Pull raw recorded audio from the queue.
+            # Pull raw recorded`` audio from the queue.
             if not data_queue.empty():
+                speaker_event.clear()
                 phrase_complete = False
                 # If enough time has passed between recordings, consider the phrase complete.
                 # Clear the current working audio buffer to start over with the new data.

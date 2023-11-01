@@ -14,7 +14,7 @@ from langchain.callbacks.base import BaseCallbackHandler
 
 
 # api key
-os.environ["OPENAI_API_KEY"] = 'KEY'
+os.environ["OPENAI_API_KEY"] = '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'
 
 # Defined a QueueCallback, which takes as a Queue object during initialization. Each new token is pushed to the queue.
 class QueueCallback(BaseCallbackHandler):
