@@ -7,6 +7,7 @@ import shutil
 import os
 import subprocess
 import time
+import orchestrate
 
 
 # Define API keys and voice ID
@@ -15,8 +16,8 @@ ELEVENLABS_API_KEY = 'ed0b37bd0196e46583e6d87094b2794e'
 VOICE_ID = '21m00Tcm4TlvDq8ikWAM'
 
 # Set OpenAI API key
-openai.api_key = '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'
-# os.environ["OPENAI_API_KEY"] = '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'
+openai.api_key = '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'
+#os.environ["OPENAI_API_KEY"] = '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'
 
 
 
@@ -111,6 +112,8 @@ async def chat_completion(chat_history):
     final_text = ""  # Initialize an empty string to store the final text
 
     async def text_iterator():
+        if orchestrate.speaker_flag==False:
+            return
         nonlocal final_text  # Declare final_text as nonlocal to modify it
         async for chunk in response:
             delta = chunk['choices'][0]["delta"]

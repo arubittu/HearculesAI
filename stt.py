@@ -13,6 +13,7 @@ from queue import Queue
 from tempfile import NamedTemporaryFile
 from time import sleep
 from sys import platform
+import orchestrate
 # from orchestrate import speaker_event
 
 
@@ -102,7 +103,7 @@ def transcribe(speaker_event):
             now = datetime.utcnow()
             # Pull raw recorded`` audio from the queue.
             if not data_queue.empty():
-                speaker_event.clear()
+                orchestrate.speaker_flag = False
                 phrase_complete = False
                 # If enough time has passed between recordings, consider the phrase complete.
                 # Clear the current working audio buffer to start over with the new data.
@@ -147,8 +148,12 @@ def transcribe(speaker_event):
                 print('', end='', flush=True)
                 
             elif phrase_time and now - phrase_time > timedelta(seconds=4):
-                print("Silence threshold of 4 seconds reached. Stopping transcription.")
-                break
+                print("Silence threshold of 4 seconds reached. Starting processing input")
+                print("Microphone: Voice input received")
+                user_query_str = ' '.join(transcription)
+                orchestrate.chat_history.append({'role': 'user', 'content': user_query_str})
+                orchestrate.speaker_flag =True
+                orchestrate.speaker_thread()
                 
             # Infinite loops are bad for processors, must sleep.
             sleep(0.25)
