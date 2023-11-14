@@ -110,9 +110,11 @@ async def chat_completion(chat_history):
     )
 
     final_text = ""  # Initialize an empty string to store the final text
+    flag = False
 
     async def text_iterator():
         if orchestrate.speaker_flag==False:
+            flag = True
             return
         nonlocal final_text  # Declare final_text as nonlocal to modify it
         async for chunk in response:
@@ -122,6 +124,8 @@ async def chat_completion(chat_history):
                 yield delta["content"]
             else:
                 break
+    if flag:
+        return final_text
 
     await text_to_speech_input_streaming(VOICE_ID, text_iterator())
     

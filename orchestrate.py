@@ -14,12 +14,14 @@ def mic_thread():
     return
 
 def speaker_thread():
-    if speaker_flag:
-        print("AI TALKING")
-        ai_response = asyncio.run(chat_completion(chat_history))
-        chat_history.append({'role': 'assistant', 'content': ai_response})
-    else:
-        time.sleep(1)
+    while True:
+        if speaker_flag:
+            print("AI TALKING")
+            ai_response = asyncio.run(chat_completion(chat_history))
+            print("AI STOPPED TALKING")
+            chat_history.append({'role': 'assistant', 'content': ai_response})
+        # else:
+        #     time.sleep(1)
 
     print("AI STOPPED TALKING")
     return

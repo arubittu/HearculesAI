@@ -103,6 +103,7 @@ def transcribe(speaker_event):
             now = datetime.utcnow()
             # Pull raw recorded`` audio from the queue.
             if not data_queue.empty():
+                print("started receiving voice input")
                 orchestrate.speaker_flag = False
                 phrase_complete = False
                 # If enough time has passed between recordings, consider the phrase complete.
@@ -152,8 +153,7 @@ def transcribe(speaker_event):
                 print("Microphone: Voice input received")
                 user_query_str = ' '.join(transcription)
                 orchestrate.chat_history.append({'role': 'user', 'content': user_query_str})
-                orchestrate.speaker_flag =True
-                orchestrate.speaker_thread()
+                orchestrate.speaker_flag = True
                 
             # Infinite loops are bad for processors, must sleep.
             sleep(0.25)
