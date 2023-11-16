@@ -18,11 +18,11 @@ from langchain.chat_models import ChatOpenAI
 
 # Define API keys and voice ID
 #OPENAI_API_KEY = '<OPENAI_API_KEY>'
-ELEVENLABS_API_KEY = 'de34d7c2afe2d2bb5bf19cac460f95f8'
+ELEVENLABS_API_KEY = 'key'
 VOICE_ID = '21m00Tcm4TlvDq8ikWAM'
 
 # Set OpenAI API key
-os.environ["OPENAI_API_KEY"] = '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'
+os.environ["OPENAI_API_KEY"] = 'key'
 
 
 def is_installed(lib_name):
