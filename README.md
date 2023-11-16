@@ -30,14 +30,7 @@ Follow the prompts to interact with the AI. Speak your queries, and the assistan
 
 ## Dependencies
 
-- pyaudio
-- SpeechRecognition
-- torch (with CUDA 11.6 support)
-- whisper (from OpenAI's GitHub repository)
-- openai
-- langchain
-- websockets
-- numpy
+environment.yml and requirements2.txt contain conda env and libraries respectively
 
 ## Contribution
 
