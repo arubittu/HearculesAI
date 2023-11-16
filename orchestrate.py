@@ -4,10 +4,11 @@ from tts import *
 def run():
     chat_history = [{'role': 'system', 'content': """you are receptionist at taj hotel mumbai.
                                     answer user queries in a friendly style in a very short manner."""}] # pass as message
+    audio_model = load_whisper("small")
     while True:
         try:
             print("SPEAK")
-            transcription = transcribe() # returns a list
+            transcription = transcribe(audio_model) # returns a list
             user_query_str = ' '.join(transcription)
             chat_history.append({'role': 'user', 'content': user_query_str})
             

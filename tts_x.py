@@ -7,27 +7,34 @@ import shutil
 import os
 import subprocess
 import time
+from threading import Thread
+from queue import Queue, Empty
+from collections.abc import Generator
+from langchain.callbacks.base import BaseCallbackHandler
+from langchain.llms import OpenAI, OpenAIChat
+from langchain.prompts import PromptTemplate
+from langchain.chains import LLMChain
+from langchain.chat_models import ChatOpenAI
+from asyncio import Queue
 
 
 # Define API keys and voice ID
 #OPENAI_API_KEY = '<OPENAI_API_KEY>'
-ELEVENLABS_API_KEY = 'KEY'
+ELEVENLABS_API_KEY = 'de34d7c2afe2d2bb5bf19cac460f95f8'
 VOICE_ID = '21m00Tcm4TlvDq8ikWAM'
 
 # Set OpenAI API key
-openai.api_key = 'KEY'
-
+os.environ["OPENAI_API_KEY"] = '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'
 
 
 def is_installed(lib_name):
     return shutil.which(lib_name) is not None
 
-
 async def text_chunker(chunks):
     """Split text into chunks, ensuring to not break sentences."""
     splitters = (".", ",", "?", "!", ";", ":", "—", "-", "(", ")", "[", "]", "}", " ")
     buffer = ""
-
+    
     async for text in chunks:
         if buffer.endswith(splitters):
             yield buffer + " "
@@ -37,10 +44,8 @@ async def text_chunker(chunks):
             buffer = text[1:]
         else:
             buffer += text
-
     if buffer:
         yield buffer + " "
-
 
 async def stream(audio_stream):
     """Stream audio data using mpv player."""
@@ -49,34 +54,33 @@ async def stream(audio_stream):
             "mpv not found, necessary to stream audio. "
             "Install instructions: https://mpv.io/installation/"
         )
-
+        
     mpv_process = subprocess.Popen(
         ["mpv", "--no-cache", "--no-terminal", "--", "fd://0"],
         stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
     )
-
+    
     print("Started streaming audio")
     async for chunk in audio_stream:
         if chunk:
             mpv_process.stdin.write(chunk)
             mpv_process.stdin.flush()
-
+            
     if mpv_process.stdin:
         mpv_process.stdin.close()
     mpv_process.wait()
 
-
 async def text_to_speech_input_streaming(voice_id, text_iterator):
     """Send text to ElevenLabs API and stream the returned audio."""
     uri = f"wss://api.elevenlabs.io/v1/text-to-speech/{voice_id}/stream-input?model_id=eleven_monolingual_v1"
-
+    
     async with websockets.connect(uri) as websocket:
         await websocket.send(json.dumps({
             "text": " ",
             "voice_settings": {"stability": 0.5, "similarity_boost": True},
             "xi_api_key": ELEVENLABS_API_KEY,
         }))
-
+        
         async def listen():
             """Listen to the websocket for audio data and stream it."""
             while True:
@@ -90,46 +94,67 @@ async def text_to_speech_input_streaming(voice_id, text_iterator):
                 except websockets.exceptions.ConnectionClosed:
                     print("Connection closed")
                     break
-
+                
         listen_task = asyncio.create_task(stream(listen()))
-
+        
         async for text in text_chunker(text_iterator):
             await websocket.send(json.dumps({"text": text, "try_trigger_generation": True}))
-
+        
         await websocket.send(json.dumps({"text": ""}))
-
+        
         await listen_task
 
-async def chat_completion(chat_history):
-    """Retrieve text from OpenAI and pass it to the text-to-speech function."""
-    response = await openai.ChatCompletion.acreate(
-        model='gpt-3.5-turbo', messages=chat_history,
-        temperature=0.3, stream=True
-    )
+class QueueCallback(BaseCallbackHandler):
+    def __init__(self, q):
+        self.q = q
+    def on_llm_new_token(self, token: str, **kwargs) -> None:
+        self.q.put(token)
+    def on_llm_end(self, *args, **kwargs) -> None:
+        return self.q.empty()
+
+async def async_langchain_stream(input_text):
+    # Initialize the LLMChain, ChatOpenAI, and PromptTemplate
+    prompt = '''you are a receptionist at taj hotel mumbai.
+                user question : {input}
+                response:
+                '''
+    template = PromptTemplate(template=prompt, input_variables=['input'])
     
-    final_text = ""  # Initialize an empty string to store the final text
+    llm = ChatOpenAI(
+        model='gpt-3.5-turbo',
+        streaming=True,
+        temperature=0.1
+    )
+    chain = LLMChain(llm=llm, prompt=template)
+
+    # Use chain.astream for streaming
+    async for s in chain.astream({"input": input_text}):
+        print(s)
+        yield s['text']
+
+
+async def chat_completion(chat_history):
+    user_input = chat_history[-1]['content']
+    final_text = ""
 
     async def text_iterator():
-        nonlocal final_text  # Declare final_text as nonlocal to modify it
-        async for chunk in response:
-            delta = chunk['choices'][0]["delta"]
-            if 'content' in delta:
-                final_text += delta["content"]  # Append each chunk to final_text
-                yield delta["content"]
-            else:
-                break
+        nonlocal final_text
+        async for content in async_langchain_stream(user_input):
+            print(type(content), end="", flush=True)
+            final_text += content
+            yield content
 
     await text_to_speech_input_streaming(VOICE_ID, text_iterator())
-    
-    return final_text  # Return the accumulated text
+    return final_text
+
+
 
 # Main execution
 if __name__ == "__main__":
-    user_query  = [{'role': 'system', 'content': """you are receptionist at taj hotel mumbai.
-                                    answer user queries in a friendly style ."""},
-                                 {'role': 'user', 'content': 'tell me a long story about this place, in a highly detailed manner'}]
+    user_query  = [{'role': 'system', 'content': """
+                                        'user': tell me a long story
+                                        """}]
     s = time.time()
-    print("START FUNCTION")
     final_response = asyncio.run(chat_completion(user_query))
     t = time.time()
     print(f"Time taken: {t-s}")

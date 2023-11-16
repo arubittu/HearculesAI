@@ -13,11 +13,28 @@ from queue import Queue
 from tempfile import NamedTemporaryFile
 from time import sleep
 from sys import platform
+import time
 
-
-def transcribe():
+def load_whisper(model_name='tiny'):
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", default="small", help="Model to use",
+    parser.add_argument("--model", default=model_name, help="Model to use",
+                        choices=["tiny", "base", "small", "medium", "large"])
+    parser.add_argument("--non_english", action='store_true',
+                        help="Don't use the english model.")
+    args = parser.parse_args()
+    
+    if args.model == "large":
+        args.model = "large-v2" 
+    model = args.model
+    if args.model != "large-v2" and not args.non_english:
+        model = model + ".en"
+
+    audio_model = WhisperModel(model, device="cpu", compute_type="int8")
+    return audio_model
+
+def transcribe(audio_model):
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model", default="tiny", help="Model to use",
                         choices=["tiny", "base", "small", "medium", "large"])
     parser.add_argument("--non_english", action='store_true',
                         help="Don't use the english model.")
@@ -62,14 +79,6 @@ def transcribe():
                     break
     else:
         source = sr.Microphone(sample_rate=16000)
-
-    # Load / Download model
-    if args.model == "large":
-        args.model = "large-v2" 
-    model = args.model
-    if args.model != "large-v2" and not args.non_english:
-        model = model + ".en"
-    audio_model = WhisperModel(model, device="cpu", compute_type="int8")
 
     record_timeout = args.record_timeout
     phrase_timeout = args.phrase_timeout
@@ -144,12 +153,12 @@ def transcribe():
                 # Flush stdout.
                 print('', end='', flush=True)
                 
-            elif phrase_time and now - phrase_time > timedelta(seconds=4):
+            elif phrase_time and now - phrase_time > timedelta(seconds=3):
                 print("Silence threshold of 4 seconds reached. Stopping transcription.")
                 break
                 
             # Infinite loops are bad for processors, must sleep.
-            sleep(0.25)
+            sleep(0.1)
         except KeyboardInterrupt:
             break
 

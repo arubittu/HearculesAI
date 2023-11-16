@@ -7,3 +7,5 @@ openai
 langchain
 websockets
 numpy
+Faster-whisper
+elevenlabs
